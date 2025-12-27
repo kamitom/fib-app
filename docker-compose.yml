@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+
+  redis:
+    image: redis:7-alpine
+
+  api:
+    build:
+      context: ./fib-be
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./fib-be:/usr/fib-be
+    environment:
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      PGUSER: ${PGUSER}
+      PGHOST: ${PGHOST}
+      PGDATABASE: ${PGDATABASE}
+      PGPASSWORD: ${PGPASSWORD}
+      PGPORT: ${PGPORT}
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    build:
+      context: ./fib-worker
+    command: npm run dev
+    volumes:
+      - /app/node_modules
+      - ./fib-worker:/app
+    environment:
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+    depends_on:
+      - redis
+
+  client:
+    build:
+      context: ./fib-fe
+      dockerfile: Dockerfile.dev
+    volumes:
+      - /app/node_modules
+      - ./fib-fe:/app
+    stdin_open: true
+    depends_on:
+      - api
+
+  nginx:
+    restart: always
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.dev
+    ports:
+      - '30003:80'
+    depends_on:
+      - api
+      - client
+
+volumes:
+  postgres_data:
