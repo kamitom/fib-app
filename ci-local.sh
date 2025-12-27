@@ -1,8 +1,6 @@
 #!/bin/bash
 # 模擬 GitHub Actions CI 環境的本地測試腳本
 
-set -e  # Exit on error
-
 echo "==========================================="
 echo "🚀 Local CI Simulation"
 echo "==========================================="
@@ -17,13 +15,16 @@ NC='\033[0m' # No Color
 # Track failures
 FAILURES=0
 
+# Get absolute path to project root
+PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 run_job() {
   local job_name=$1
   local command=$2
 
   echo -e "${YELLOW}▶ Running: ${job_name}${NC}"
 
-  if eval "$command"; then
+  if (cd "$PROJECT_ROOT" && eval "$command"); then
     echo -e "${GREEN}✓ ${job_name} passed${NC}"
     echo ""
   else
