@@ -108,7 +108,7 @@ describe('App.vue', () => {
       })
 
       // Input should be cleared after submission
-      expect(input.element.value).toBe('')
+      expect((input.element as HTMLInputElement).value).toBe('')
     })
 
     it('rejects negative numbers', async () => {
