@@ -1,5 +1,6 @@
 const keys = require('./keys');
 const redis = require('redis');
+const { fib } = require('./fib');
 
 const redisClient = redis.createClient({
   socket: {
@@ -10,15 +11,6 @@ const redisClient = redis.createClient({
 });
 
 const sub = redisClient.duplicate();
-
-function fib(index) {
-  if (index < 2) return 1;
-  let a = 1, b = 1;
-  for (let i = 2; i <= index; i++) {
-    [a, b] = [b, a + b];
-  }
-  return b;
-}
 
 (async () => {
   await redisClient.connect();

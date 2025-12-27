@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-frontend:
+    name: Frontend Tests (Vue + Vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: fib-fe/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./fib-fe
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ./fib-fe
+        run: npm run test:unit -- --run
+
+      - name: Type check
+        working-directory: ./fib-fe
+        run: npm run type-check
+
+      - name: Build
+        working-directory: ./fib-fe
+        run: npm run build
+
+  test-backend:
+    name: Backend Tests (FastAPI + pytest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: fib-be/requirements.txt
+
+      - name: Install dependencies
+        working-directory: ./fib-be
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run tests
+        working-directory: ./fib-be
+        run: python -m pytest test_main.py -v --tb=short
+
+  test-worker:
+    name: Worker Tests (Node.js + Jest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: fib-worker/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./fib-worker
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ./fib-worker
+        run: npm test
+
+  build-images:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [test-frontend, test-backend, test-worker]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build frontend image
+        run: docker build -t fib-fe:latest ./fib-fe
+
+      - name: Build backend image
+        run: docker build -t fib-be:latest ./fib-be
+
+      - name: Build worker image
+        run: docker build -t fib-worker:latest ./fib-worker
+
+      - name: Build nginx image
+        run: docker build -t fib-nginx:latest ./nginx

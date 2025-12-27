@@ -1,0 +1,71 @@
+name: Test Coverage
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  coverage:
+    name: Code Coverage Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Frontend coverage
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Frontend coverage
+        working-directory: ./fib-fe
+        run: |
+          npm ci
+          npm run test:unit -- --run --coverage
+
+      - name: Upload frontend coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./fib-fe/coverage/coverage-final.json
+          flags: frontend
+          name: frontend-coverage
+        continue-on-error: true
+
+      # Backend coverage
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Backend coverage
+        working-directory: ./fib-be
+        run: |
+          pip install -r requirements.txt
+          pip install pytest-cov
+          pytest test_main.py --cov=main --cov-report=xml
+
+      - name: Upload backend coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./fib-be/coverage.xml
+          flags: backend
+          name: backend-coverage
+        continue-on-error: true
+
+      # Worker coverage
+      - name: Worker coverage
+        working-directory: ./fib-worker
+        run: |
+          npm ci
+          npm test -- --coverage
+
+      - name: Upload worker coverage
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./fib-worker/coverage/coverage-final.json
+          flags: worker
+          name: worker-coverage
+        continue-on-error: true

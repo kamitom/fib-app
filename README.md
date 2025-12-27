@@ -1,5 +1,8 @@
 # 這是一個學習什麼是多容器化應用程式的專案
 
+![CI](https://github.com/YOUR_USERNAME/fib-app/workflows/CI/badge.svg)
+![Test Coverage](https://github.com/YOUR_USERNAME/fib-app/workflows/Test%20Coverage/badge.svg)
+
 ## 專案功能： 斐波那契數列（Fibonacci sequence）web app
 
 ## 這是 multi-container Application
@@ -22,6 +25,38 @@
 
 詳細的架構流程圖和 User Story 圖示請參考 [USER-STORY](USER-STORY/) 目錄
 
-## 最終目的：完成 CI/CD 部署
+## 開發與測試
 
-### 可以部署到 GCP Cloud Run 與 AWS beanstalk
+### 本地開發
+```bash
+# 啟動所有服務
+docker-compose up
+
+# 訪問應用
+http://localhost:30003
+```
+
+### 執行測試
+```bash
+# 所有測試
+./test-all.sh
+
+# 個別測試
+cd fib-fe && npm run test:unit      # 前端測試
+cd fib-be && pytest -v               # 後端測試
+cd fib-worker && npm test            # Worker 測試
+```
+
+詳細測試文件請參考 [TESTING.md](TESTING.md)
+
+## CI/CD
+
+### GitHub Actions
+- **CI Pipeline**: 自動執行所有測試
+- **Test Coverage**: 程式碼覆蓋率報告
+- **Docker Build**: 驗證所有容器映像可以成功構建
+
+### 部署目標
+- ✅ **AWS Elastic Beanstalk** (推薦 - 原生支援 multi-container)
+- 🔄 GCP Compute Engine + Docker Compose
+- ⚠️ GCP Cloud Run (需要重構架構為微服務)
