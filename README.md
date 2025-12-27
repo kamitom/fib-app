@@ -100,18 +100,54 @@ pytest tests/test_integration.py -v          # 整合測試 (10 tests)
    - Infrastructure 設置步驟（RDS、ElastiCache、ECR）
    - GitHub Actions CD workflow 範本
 
-**⬜ 下一步（準備進入 CD）:**
-- [ ] 建立 `Dockerrun.aws.json` for Elastic Beanstalk
-- [ ] 設置 AWS 基礎設施（RDS PostgreSQL、ElastiCache Redis、ECR）
-- [ ] 配置 GitHub Secrets（AWS credentials、RDS/Redis endpoints）
-- [ ] 建立 `.github/workflows/deploy-staging.yml`
-- [ ] 建立 `.github/workflows/deploy-production.yml`
-- [ ] 測試 staging 環境部署
-- [ ] 設置監控與告警（CloudWatch）
+### 🎯 CD 就緒！
+
+**✅ CD 配置已完成：**
+
+1. **Deployment Workflows**
+   - [`.github/workflows/deploy-staging.yml`](.github/workflows/deploy-staging.yml) - Staging 自動部署
+   - [`.github/workflows/deploy-production.yml`](.github/workflows/deploy-production.yml) - Production 部署（含確認機制）
+
+2. **Infrastructure as Code**
+   - [`Dockerrun.aws.json.template`](Dockerrun.aws.json.template) - Elastic Beanstalk multi-container 配置
+   - [`scripts/setup-aws-infrastructure.sh`](scripts/setup-aws-infrastructure.sh) - AWS 基礎設施自動化腳本
+
+3. **Documentation**
+   - [DEPLOYMENT.md](docs/DEPLOYMENT.md) - 完整部署指南（正體中文）
+   - [QUICK-START-CD.md](docs/QUICK-START-CD.md) - 30 分鐘快速啟動
+
+**⬜ 部署執行步驟：**
+
+```bash
+# 1. 建立 AWS 基礎設施（自動化腳本）
+./scripts/setup-aws-infrastructure.sh
+
+# 2. 在 AWS Console 建立 Elastic Beanstalk 環境
+# 詳見：docs/QUICK-START-CD.md
+
+# 3. 設定 GitHub Secrets
+# AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, ECR_REGISTRY
+# STAGING_RDS_ENDPOINT, STAGING_REDIS_ENDPOINT, STAGING_DB_PASSWORD
+
+# 4. 部署至 Staging
+git checkout -b develop
+git push origin develop
+
+# 5. 部署至 Production
+git checkout main
+git push origin main
+```
+
+**特色：**
+- 🚀 develop 分支自動部署至 Staging
+- 🔒 Production 需手動確認或 tag 觸發
+- 🏥 內建 health check 驗證
+- 📊 部署摘要與回滾指令
+- 🌏 優化東京區域 (ap-northeast-1)
 
 ### 部署目標
 - ✅ **AWS Elastic Beanstalk** (推薦 - 原生支援 multi-container)
 - 🔄 GCP Compute Engine + Docker Compose
 - ⚠️ GCP Cloud Run (需要重構架構為微服務)
 
-參考：[DEPLOYMENT.md](docs/DEPLOYMENT.md) 查看完整部署指南
+**快速開始：** [QUICK-START-CD.md](docs/QUICK-START-CD.md) | **完整指南：** [DEPLOYMENT.md](docs/DEPLOYMENT.md)

@@ -5,6 +5,12 @@
 .env.staging
 .env.production
 
+# Deployment files
+Dockerrun.aws.json
+deploy-*.zip
+.elasticbeanstalk/
+.ebextensions/
+
 # Dependencies
 node_modules/
 
@@ -25,6 +31,7 @@ dist/
 build/
 
 # Logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*

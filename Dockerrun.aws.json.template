@@ -1,0 +1,49 @@
+{
+  "AWSEBDockerrunVersion": 2,
+  "containerDefinitions": [
+    {
+      "name": "nginx",
+      "image": "${ECR_REGISTRY}/fib-nginx:${IMAGE_TAG}",
+      "memory": 128,
+      "essential": true,
+      "portMappings": [
+        {
+          "hostPort": 80,
+          "containerPort": 80
+        }
+      ],
+      "links": ["client", "api"]
+    },
+    {
+      "name": "client",
+      "image": "${ECR_REGISTRY}/fib-fe:${IMAGE_TAG}",
+      "memory": 256,
+      "essential": true
+    },
+    {
+      "name": "api",
+      "image": "${ECR_REGISTRY}/fib-be:${IMAGE_TAG}",
+      "memory": 512,
+      "essential": true,
+      "environment": [
+        {"name": "REDIS_HOST", "value": "${REDIS_HOST}"},
+        {"name": "REDIS_PORT", "value": "6379"},
+        {"name": "PGHOST", "value": "${PGHOST}"},
+        {"name": "PGUSER", "value": "${PGUSER}"},
+        {"name": "PGDATABASE", "value": "${PGDATABASE}"},
+        {"name": "PGPASSWORD", "value": "${PGPASSWORD}"},
+        {"name": "PGPORT", "value": "5432"}
+      ]
+    },
+    {
+      "name": "worker",
+      "image": "${ECR_REGISTRY}/fib-worker:${IMAGE_TAG}",
+      "memory": 256,
+      "essential": false,
+      "environment": [
+        {"name": "REDIS_HOST", "value": "${REDIS_HOST}"},
+        {"name": "REDIS_PORT", "value": "6379"}
+      ]
+    }
+  ]
+}
