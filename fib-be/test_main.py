@@ -11,6 +11,7 @@ def mock_redis():
     mock.keys = AsyncMock(return_value=[])
     mock.mget = AsyncMock(return_value=[])
     mock.publish = AsyncMock()
+    mock.ping = AsyncMock()
     mock.close = AsyncMock()
     return mock
 
@@ -24,6 +25,7 @@ def mock_pg_pool():
     mock_conn = AsyncMock()
     mock_conn.execute = AsyncMock()
     mock_conn.fetch = AsyncMock(return_value=[])
+    mock_conn.fetchval = AsyncMock(return_value=1)
 
     # Mock acquire() context manager
     mock.acquire = MagicMock()
@@ -65,7 +67,9 @@ class TestBasicEndpoints:
     async def test_health(self, client):
         response = await client.get("/health")
         assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
+        data = response.json()
+        assert data["status"] == "healthy"
+        assert "checks" in data
 
 
 class TestGetAllIndices:
@@ -200,3 +204,71 @@ class TestDuplicateIndex:
         # Both should succeed (idempotent)
         assert mock_conn.execute.call_count == 2
         assert mock_redis.publish.call_count == 2
+
+
+# Health Check Tests
+@pytest.mark.asyncio
+async def test_health_check_all_healthy(client, mock_redis, mock_pg_pool):
+    """Health check should return healthy when all services are ok."""
+    response = await client.get("/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "healthy"
+    assert data["checks"]["api"] == "healthy"
+    assert data["checks"]["redis"] == "healthy"
+    assert data["checks"]["postgres"] == "healthy"
+
+    # Verify actual checks were performed
+    mock_redis.ping.assert_called_once()
+    mock_conn = mock_pg_pool.acquire.return_value.__aenter__.return_value
+    mock_conn.fetchval.assert_called_once_with("SELECT 1")
+
+
+@pytest.mark.asyncio
+async def test_health_check_redis_down(client, mock_redis, mock_pg_pool):
+    """Health check should report degraded when Redis is down."""
+    mock_redis.ping.side_effect = Exception("Connection refused")
+
+    response = await client.get("/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "degraded"
+    assert data["checks"]["api"] == "healthy"
+    assert "unhealthy" in data["checks"]["redis"]
+    assert "Connection refused" in data["checks"]["redis"]
+    assert data["checks"]["postgres"] == "healthy"
+
+
+@pytest.mark.asyncio
+async def test_health_check_postgres_down(client, mock_redis, mock_pg_pool):
+    """Health check should report degraded when PostgreSQL is down."""
+    mock_conn = mock_pg_pool.acquire.return_value.__aenter__.return_value
+    mock_conn.fetchval.side_effect = Exception("Database unavailable")
+
+    response = await client.get("/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "degraded"
+    assert data["checks"]["api"] == "healthy"
+    assert data["checks"]["redis"] == "healthy"
+    assert "unhealthy" in data["checks"]["postgres"]
+    assert "Database unavailable" in data["checks"]["postgres"]
+
+
+@pytest.mark.asyncio
+async def test_health_check_all_down(client, mock_redis, mock_pg_pool):
+    """Health check should report degraded when all services are down."""
+    mock_redis.ping.side_effect = Exception("Redis error")
+    mock_conn = mock_pg_pool.acquire.return_value.__aenter__.return_value
+    mock_conn.fetchval.side_effect = Exception("PG error")
+
+    response = await client.get("/health")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "degraded"
+    assert "unhealthy" in data["checks"]["redis"]
+    assert "unhealthy" in data["checks"]["postgres"]

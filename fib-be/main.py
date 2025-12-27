@@ -128,5 +128,33 @@ async def submit_index(req: IndexRequest):
 
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+async def health():
+    """Health check endpoint that verifies all dependencies."""
+    checks = {
+        "api": "healthy",
+        "redis": "unknown",
+        "postgres": "unknown"
+    }
+
+    # Check Redis
+    try:
+        await redis_client.ping()
+        checks["redis"] = "healthy"
+    except Exception as e:
+        checks["redis"] = f"unhealthy: {str(e)}"
+
+    # Check PostgreSQL
+    try:
+        async with pg_pool.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+        checks["postgres"] = "healthy"
+    except Exception as e:
+        checks["postgres"] = f"unhealthy: {str(e)}"
+
+    # Overall status
+    all_healthy = all(v == "healthy" for v in checks.values())
+
+    return {
+        "status": "healthy" if all_healthy else "degraded",
+        "checks": checks
+    }

@@ -29,6 +29,13 @@ npm install --silent
 npm test
 cd ..
 
+# Integration tests (requires docker compose up)
+echo ""
+echo "🔗 Integration Tests (Multi-container)..."
+echo "⚠️  Note: Requires 'docker compose up -d' to be running"
+pip install -q -r tests/requirements.txt
+python -m pytest tests/test_integration.py -v
+
 echo ""
 echo "========================================="
 echo "✅ All tests passed!"

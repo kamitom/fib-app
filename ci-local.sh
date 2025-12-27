@@ -66,6 +66,20 @@ run_job "Build - Backend" "docker build -q -t fib-be:latest ./fib-be"
 run_job "Build - Worker" "docker build -q -t fib-worker:latest ./fib-worker"
 run_job "Build - Nginx" "docker build -q -t fib-nginx:latest ./nginx"
 
+# Integration Tests Job (optional - requires containers running)
+echo "==========================================="
+echo "Job: integration-tests (optional)"
+echo "==========================================="
+if docker compose ps | grep -q "Up"; then
+  echo "Docker containers detected - running integration tests"
+  run_job "Integration Tests - Install" "pip install -q -r tests/requirements.txt"
+  run_job "Integration Tests - Run" "python -m pytest tests/test_integration.py -v --tb=short"
+else
+  echo -e "${YELLOW}⚠️  Skipping integration tests (containers not running)${NC}"
+  echo "To run: docker compose up -d && ./ci-local.sh"
+  echo ""
+fi
+
 # Summary
 echo "==========================================="
 if [ $FAILURES -eq 0 ]; then
