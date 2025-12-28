@@ -1,6 +1,7 @@
 import os
 import asyncio
 import time
+import ssl
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -63,7 +64,12 @@ async def lifespan(app: FastAPI):
 
             # Add SSL if required (AWS RDS)
             if PGSSL == "require":
-                conn_params["ssl"] = True
+                # Create SSL context that doesn't verify certificates
+                # AWS RDS requires SSL but self-signed certs need verification disabled
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+                conn_params["ssl"] = ssl_context
 
             pg_pool = await asyncpg.create_pool(**conn_params)
             print(f"✓ Connected to PostgreSQL on attempt {attempt + 1}")
