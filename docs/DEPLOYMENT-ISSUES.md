@@ -79,7 +79,7 @@ aws s3api put-bucket-ownership-controls \
 }
 ```
 
-### 4. PostgreSQL SSL 連線需求
+### 4. PostgreSQL SSL 連線需求與憑證問題
 **症狀**:
 - ECS task 啟動成功但所有容器 STOPPED
 - StopCode: EssentialContainerExited
@@ -87,9 +87,11 @@ aws s3api put-bucket-ownership-controls \
 - 502 Bad Gateway
 
 **根本原因**:
-- AWS RDS 強制要求 SSL/TLS 連線
-- Backend 程式碼沒有啟用 SSL
-- 錯誤: `InvalidAuthorizationSpecificationError: no pg_hba.conf entry for host "172.31.30.138", user "fib_staging", database "fib_staging", no encryption`
+1. AWS RDS 強制要求 SSL/TLS 連線
+2. Backend 程式碼沒有啟用 SSL
+3. 錯誤: `InvalidAuthorizationSpecificationError: no pg_hba.conf entry for host "172.31.30.138", user "fib_staging", database "fib_staging", no encryption`
+4. **密碼錯誤**: GitHub Secret `STAGING_DB_PASSWORD` 與實際 RDS 密碼不匹配
+5. **用戶名錯誤**: Workflow 使用 `fib_staging` 但實際 RDS MasterUsername 是 `mac398`
 
 **修復**:
 1. 在 `fib-be/main.py` 加入 `PGSSL` 環境變數（預設 "disable"）
