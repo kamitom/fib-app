@@ -74,6 +74,46 @@ async def lifespan(app: FastAPI):
             pg_pool = await asyncpg.create_pool(**conn_params)
             print(f"✓ Connected to PostgreSQL on attempt {attempt + 1}")
             break
+        except asyncpg.InvalidPasswordError as e:
+            # If fib_staging user auth fails, try to create it with master user
+            if PGUSER == "fib_staging" and attempt == 0:
+                print(f"⚠️  User {PGUSER} auth failed, attempting to create user with master account...")
+                try:
+                    master_params = conn_params.copy()
+                    master_params["user"] = "mac398"
+                    master_conn = await asyncpg.connect(**master_params)
+
+                    # Check if user exists
+                    user_exists = await master_conn.fetchval(
+                        "SELECT 1 FROM pg_roles WHERE rolname = $1", PGUSER
+                    )
+
+                    if not user_exists:
+                        print(f"Creating user {PGUSER}...")
+                        await master_conn.execute(f"CREATE USER {PGUSER} WITH PASSWORD $1", PGPASSWORD)
+                        await master_conn.execute(f"GRANT ALL PRIVILEGES ON DATABASE {PGDATABASE} TO {PGUSER}")
+                        await master_conn.execute(f"GRANT USAGE, CREATE ON SCHEMA public TO {PGUSER}")
+                        await master_conn.execute(f"GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO {PGUSER}")
+                        await master_conn.execute(f"GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO {PGUSER}")
+                        await master_conn.execute(f"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON TABLES TO {PGUSER}")
+                        await master_conn.execute(f"ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL PRIVILEGES ON SEQUENCES TO {PGUSER}")
+                        print(f"✓ User {PGUSER} created successfully")
+                    else:
+                        print(f"✓ User {PGUSER} exists, updating password...")
+                        await master_conn.execute(f"ALTER USER {PGUSER} WITH PASSWORD $1", PGPASSWORD)
+
+                    await master_conn.close()
+                    # Retry connection with the newly created/updated user
+                    continue
+                except Exception as create_error:
+                    print(f"❌ Failed to create user: {create_error}")
+                    if attempt < max_retries - 1:
+                        wait_time = 2 ** attempt
+                        await asyncio.sleep(wait_time)
+                    else:
+                        raise
+            else:
+                raise e
         except Exception as e:
             if attempt < max_retries - 1:
                 wait_time = 2 ** attempt
