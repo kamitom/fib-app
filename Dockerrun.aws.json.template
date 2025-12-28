@@ -32,7 +32,8 @@
         {"name": "PGUSER", "value": "${PGUSER}"},
         {"name": "PGDATABASE", "value": "${PGDATABASE}"},
         {"name": "PGPASSWORD", "value": "${PGPASSWORD}"},
-        {"name": "PGPORT", "value": "5432"}
+        {"name": "PGPORT", "value": "5432"},
+        {"name": "PGSSL", "value": "require"}
       ]
     },
     {

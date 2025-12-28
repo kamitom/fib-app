@@ -17,6 +17,7 @@ PGHOST = os.getenv("PGHOST", "postgres")
 PGDATABASE = os.getenv("PGDATABASE", "fib")
 PGPASSWORD = os.getenv("PGPASSWORD", "postgres")
 PGPORT = int(os.getenv("PGPORT", "5432"))
+PGSSL = os.getenv("PGSSL", "disable")  # "require" for AWS RDS, "disable" for local
 
 
 # Global connections
@@ -50,14 +51,21 @@ async def lifespan(app: FastAPI):
     # Connect to PostgreSQL with retries
     for attempt in range(max_retries):
         try:
-            pg_pool = await asyncpg.create_pool(
-                user=PGUSER,
-                password=PGPASSWORD,
-                database=PGDATABASE,
-                host=PGHOST,
-                port=PGPORT,
-                timeout=5
-            )
+            # Prepare connection parameters
+            conn_params = {
+                "user": PGUSER,
+                "password": PGPASSWORD,
+                "database": PGDATABASE,
+                "host": PGHOST,
+                "port": PGPORT,
+                "timeout": 5
+            }
+
+            # Add SSL if required (AWS RDS)
+            if PGSSL != "disable":
+                conn_params["ssl"] = PGSSL
+
+            pg_pool = await asyncpg.create_pool(**conn_params)
             print(f"✓ Connected to PostgreSQL on attempt {attempt + 1}")
             break
         except Exception as e:

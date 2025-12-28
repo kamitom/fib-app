@@ -79,22 +79,37 @@ aws s3api put-bucket-ownership-controls \
 }
 ```
 
-### 4. 未解決：容器立即退出
+### 4. PostgreSQL SSL 連線需求
 **症狀**:
 - ECS task 啟動成功但所有容器 STOPPED
 - StopCode: EssentialContainerExited
+- API container exit code: 3
 - 502 Bad Gateway
 
-**可能原因**:
-1. 應用啟動失敗（frontend/backend 內部錯誤）
-2. 環境變數配置錯誤
-3. 容器依賴問題（數據庫連接失敗等）
+**根本原因**:
+- AWS RDS 強制要求 SSL/TLS 連線
+- Backend 程式碼沒有啟用 SSL
+- 錯誤: `InvalidAuthorizationSpecificationError: no pg_hba.conf entry for host "172.31.30.138", user "fib_staging", database "fib_staging", no encryption`
 
-**需要進一步診斷**:
-- 查看 CloudWatch Logs
-- 檢查容器啟動日誌
-- 驗證環境變數是否正確傳遞
-- 測試容器本地是否能正常運行
+**修復**:
+1. 在 `fib-be/main.py` 加入 `PGSSL` 環境變數（預設 "disable"）
+2. 連線時根據環境變數決定是否使用 SSL：
+```python
+conn_params = {
+    "user": PGUSER,
+    "password": PGPASSWORD,
+    "database": PGDATABASE,
+    "host": PGHOST,
+    "port": PGPORT,
+    "timeout": 5
+}
+
+# Add SSL if required (AWS RDS)
+if PGSSL != "disable":
+    conn_params["ssl"] = PGSSL
+```
+3. 在 `Dockerrun.aws.json.template` 加入 `{"name": "PGSSL", "value": "require"}`
+4. 本地環境保持預設 `PGSSL=disable`（不需修改 docker-compose.yml）
 
 ## 已修復的文件
 
@@ -102,6 +117,8 @@ aws s3api put-bucket-ownership-controls \
 2. `nginx/default.conf` - 主 nginx 反向代理配置
 3. `scripts/setup-aws-infrastructure.sh` - 加入 S3 ACL 和 ECR 權限修復
 4. `.github/workflows/deploy-staging.yml` - 加入 debug 日誌
+5. `fib-be/main.py` - 加入 SSL 支援和連線重試邏輯
+6. `Dockerrun.aws.json.template` - 加入 PGSSL 環境變數
 
 ## 學到的經驗
 
@@ -109,6 +126,7 @@ aws s3api put-bucket-ownership-controls \
 1. **必須使用 ECS running on AL2023 platform** - Multi-container Docker 已棄用
 2. **需要額外的 ECR 權限** - Managed policies 不足夠
 3. **S3 bucket 需要允許 ACL** - 新 buckets 默認禁用
+4. **RDS 必須使用 SSL 連線** - AWS 安全要求，本地開發需支援條件切換
 
 ### 架構理解
 - EB ALB → ECS Task → Nginx Container → Client/API Containers
