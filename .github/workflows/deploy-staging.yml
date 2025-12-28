@@ -79,7 +79,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           REDIS_HOST: ${{ secrets.STAGING_REDIS_ENDPOINT }}
           PGHOST: ${{ secrets.STAGING_RDS_ENDPOINT }}
-          PGUSER: fib_staging
+          PGUSER: mac398
           PGDATABASE: fib_staging
           PGPASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
 
