@@ -1,4 +1,6 @@
 import os
+import asyncio
+import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -24,23 +26,47 @@ pg_pool: asyncpg.Pool = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize connections on startup, cleanup on shutdown."""
+    """Initialize connections on startup with retries, cleanup on shutdown."""
     global redis_client, pg_pool
 
-    # Connect to Redis
-    redis_client = await redis.from_url(
-        f"redis://{REDIS_HOST}:{REDIS_PORT}",
-        decode_responses=True
-    )
+    # Connect to Redis with retries
+    max_retries = 5
+    for attempt in range(max_retries):
+        try:
+            redis_client = await redis.from_url(
+                f"redis://{REDIS_HOST}:{REDIS_PORT}",
+                decode_responses=True
+            )
+            print(f"✓ Connected to Redis on attempt {attempt + 1}")
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt  # Exponential backoff
+                print(f"Redis connection attempt {attempt + 1} failed: {e}. Retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            else:
+                raise
 
-    # Connect to PostgreSQL
-    pg_pool = await asyncpg.create_pool(
-        user=PGUSER,
-        password=PGPASSWORD,
-        database=PGDATABASE,
-        host=PGHOST,
-        port=PGPORT
-    )
+    # Connect to PostgreSQL with retries
+    for attempt in range(max_retries):
+        try:
+            pg_pool = await asyncpg.create_pool(
+                user=PGUSER,
+                password=PGPASSWORD,
+                database=PGDATABASE,
+                host=PGHOST,
+                port=PGPORT,
+                timeout=5
+            )
+            print(f"✓ Connected to PostgreSQL on attempt {attempt + 1}")
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait_time = 2 ** attempt
+                print(f"PostgreSQL connection attempt {attempt + 1} failed: {e}. Retrying in {wait_time}s...")
+                await asyncio.sleep(wait_time)
+            else:
+                raise
 
     # Ensure table exists
     async with pg_pool.acquire() as conn:
