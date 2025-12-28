@@ -9,7 +9,6 @@
 Dockerrun.aws.json
 deploy-*.zip
 .elasticbeanstalk/
-.ebextensions/
 
 # Dependencies
 node_modules/

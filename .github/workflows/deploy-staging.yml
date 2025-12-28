@@ -3,7 +3,7 @@ name: Deploy to Staging
 on:
   push:
     branches: [develop]
-  workflow_dispatch:  # 允許手動觸發
+  workflow_dispatch: # 允許手動觸發
 
 env:
   AWS_REGION: ap-northeast-1
@@ -79,7 +79,7 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
           REDIS_HOST: ${{ secrets.STAGING_REDIS_ENDPOINT }}
           PGHOST: ${{ secrets.STAGING_RDS_ENDPOINT }}
-          PGUSER: mac398
+          PGUSER: fib_staging
           PGDATABASE: fib_staging
           PGPASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
 

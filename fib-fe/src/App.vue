@@ -86,7 +86,7 @@
 <template>
   <div class="container">
     <header>
-      <h1>Fib Calculator - v00</h1>
+      <h1>Fib Calculator - v01</h1>
     </header>
 
     <main>
