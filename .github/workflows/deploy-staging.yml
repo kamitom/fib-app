@@ -72,6 +72,8 @@ jobs:
       - name: Generate Dockerrun.aws.json
         run: |
           envsubst < Dockerrun.aws.json.template > Dockerrun.aws.json
+          echo "Generated Dockerrun.aws.json:"
+          cat Dockerrun.aws.json
         env:
           ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
           IMAGE_TAG: ${{ github.sha }}
@@ -84,6 +86,8 @@ jobs:
       - name: Create deployment package
         run: |
           zip -r deploy-${{ github.sha }}.zip Dockerrun.aws.json .ebextensions || true
+          echo "Deployment package contents:"
+          unzip -l deploy-${{ github.sha }}.zip
           echo "Deployment package created"
 
       - name: Upload to S3
