@@ -62,8 +62,8 @@ async def lifespan(app: FastAPI):
             }
 
             # Add SSL if required (AWS RDS)
-            if PGSSL != "disable":
-                conn_params["ssl"] = PGSSL
+            if PGSSL == "require":
+                conn_params["ssl"] = True
 
             pg_pool = await asyncpg.create_pool(**conn_params)
             print(f"✓ Connected to PostgreSQL on attempt {attempt + 1}")
