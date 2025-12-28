@@ -296,6 +296,33 @@ EOF
     --policy-arn arn:aws:iam::aws:policy/AWSElasticBeanstalkWorkerTier \
     2>/dev/null || true
 
+  # Add ECR pull permissions for ECS platform
+  cat > /tmp/ecr-pull-policy.json << 'EOF'
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+
+  aws iam put-role-policy \
+    --role-name aws-elasticbeanstalk-ec2-role \
+    --policy-name ECR-Pull-Policy \
+    --policy-document file:///tmp/ecr-pull-policy.json \
+    2>/dev/null || true
+
+  rm /tmp/ecr-pull-policy.json
+
   # Create instance profile
   aws iam create-instance-profile \
     --instance-profile-name aws-elasticbeanstalk-ec2-role \
@@ -470,6 +497,18 @@ EOF
     --region $AWS_REGION
 
   print_success "EB Environment 已就緒"
+
+  # Fix S3 bucket ACL settings for EB deployments
+  echo ""
+  echo "修復 S3 Bucket ACL 設定..."
+  S3_BUCKET="elasticbeanstalk-${REGION}-${ACCOUNT_ID}"
+
+  aws s3api put-bucket-ownership-controls \
+    --bucket $S3_BUCKET \
+    --region $REGION \
+    --ownership-controls 'Rules=[{ObjectOwnership=ObjectWriter}]' 2>/dev/null || true
+
+  print_success "S3 Bucket ACL 設定已更新"
 fi
 
 echo ""
