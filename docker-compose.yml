@@ -51,6 +51,9 @@ services:
     build:
       context: .
       dockerfile: nginx/Dockerfile
+    environment:
+      NGINX_API_HOST: api
+      NGINX_API_PORT: "8000"
     ports:
       - '30003:80'
     depends_on:

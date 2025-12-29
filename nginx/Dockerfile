@@ -10,7 +10,7 @@ RUN npm --prefix fib-fe run build
 
 FROM nginx:1.27-alpine
 
-COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY nginx/default.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/fib-fe/dist /usr/share/nginx/html
 
 EXPOSE 80
