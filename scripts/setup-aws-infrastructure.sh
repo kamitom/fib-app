@@ -501,11 +501,11 @@ EOF
   # Fix S3 bucket ACL settings for EB deployments
   echo ""
   echo "修復 S3 Bucket ACL 設定..."
-  S3_BUCKET="elasticbeanstalk-${REGION}-${ACCOUNT_ID}"
+  S3_BUCKET="elasticbeanstalk-${AWS_REGION}-${AWS_ACCOUNT_ID}"
 
   aws s3api put-bucket-ownership-controls \
     --bucket $S3_BUCKET \
-    --region $REGION \
+    --region $AWS_REGION \
     --ownership-controls 'Rules=[{ObjectOwnership=ObjectWriter}]' 2>/dev/null || true
 
   print_success "S3 Bucket ACL 設定已更新"
