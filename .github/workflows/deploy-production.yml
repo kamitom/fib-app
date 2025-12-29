@@ -71,10 +71,6 @@ jobs:
         run: |
           echo "Building production images with version: ${{ steps.version.outputs.version }}"
 
-          docker build -t ${{ secrets.ECR_REGISTRY }}/fib-fe:${{ steps.version.outputs.version }} \
-            -t ${{ secrets.ECR_REGISTRY }}/fib-fe:latest \
-            ./fib-fe
-
           docker build -t ${{ secrets.ECR_REGISTRY }}/fib-be:${{ steps.version.outputs.version }} \
             -t ${{ secrets.ECR_REGISTRY }}/fib-be:latest \
             ./fib-be
@@ -85,14 +81,12 @@ jobs:
 
           docker build -t ${{ secrets.ECR_REGISTRY }}/fib-nginx:${{ steps.version.outputs.version }} \
             -t ${{ secrets.ECR_REGISTRY }}/fib-nginx:latest \
-            ./nginx
+            -f nginx/Dockerfile \
+            .
 
       - name: Push images to ECR
         run: |
           echo "Pushing production images to ECR..."
-
-          docker push ${{ secrets.ECR_REGISTRY }}/fib-fe:${{ steps.version.outputs.version }}
-          docker push ${{ secrets.ECR_REGISTRY }}/fib-fe:latest
 
           docker push ${{ secrets.ECR_REGISTRY }}/fib-be:${{ steps.version.outputs.version }}
           docker push ${{ secrets.ECR_REGISTRY }}/fib-be:latest

@@ -37,10 +37,6 @@ jobs:
         run: |
           echo "Building images with tag: ${{ github.sha }}"
 
-          docker build -t ${{ secrets.ECR_REGISTRY }}/fib-fe:${{ github.sha }} \
-            -t ${{ secrets.ECR_REGISTRY }}/fib-fe:staging-latest \
-            ./fib-fe
-
           docker build -t ${{ secrets.ECR_REGISTRY }}/fib-be:${{ github.sha }} \
             -t ${{ secrets.ECR_REGISTRY }}/fib-be:staging-latest \
             ./fib-be
@@ -51,14 +47,12 @@ jobs:
 
           docker build -t ${{ secrets.ECR_REGISTRY }}/fib-nginx:${{ github.sha }} \
             -t ${{ secrets.ECR_REGISTRY }}/fib-nginx:staging-latest \
-            ./nginx
+            -f nginx/Dockerfile \
+            .
 
       - name: Push images to ECR
         run: |
           echo "Pushing images to ECR..."
-
-          docker push ${{ secrets.ECR_REGISTRY }}/fib-fe:${{ github.sha }}
-          docker push ${{ secrets.ECR_REGISTRY }}/fib-fe:staging-latest
 
           docker push ${{ secrets.ECR_REGISTRY }}/fib-be:${{ github.sha }}
           docker push ${{ secrets.ECR_REGISTRY }}/fib-be:staging-latest

@@ -12,13 +12,7 @@
           "containerPort": 80
         }
       ],
-      "links": ["client", "api"]
-    },
-    {
-      "name": "client",
-      "image": "${ECR_REGISTRY}/fib-fe:${IMAGE_TAG}",
-      "memory": 256,
-      "essential": true
+      "links": ["api"]
     },
     {
       "name": "api",
