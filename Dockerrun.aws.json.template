@@ -12,9 +12,9 @@
           "containerPort": 80
         }
       ],
-      "links": ["api"],
+      "links": ["api:api"],
       "environment": [
-        {"name": "NGINX_API_HOST", "value": "127.0.0.1"},
+        {"name": "NGINX_API_HOST", "value": "api"},
         {"name": "NGINX_API_PORT", "value": "8000"}
       ]
     },

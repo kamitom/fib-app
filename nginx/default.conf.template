@@ -1,6 +1,5 @@
 server {
     listen 80;
-    resolver 127.0.0.11 ipv6=off;
 
     location / {
         root /usr/share/nginx/html;
@@ -9,9 +8,8 @@ server {
     }
 
     location /api/ {
-        set $upstream_api ${NGINX_API_HOST}:${NGINX_API_PORT};
         rewrite ^/api/(.*)$ /$1 break;
-        proxy_pass http://$upstream_api;
+        proxy_pass http://${NGINX_API_HOST}:${NGINX_API_PORT};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
